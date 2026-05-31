@@ -75,6 +75,24 @@ const snakeHeadImg=new Image();
 snakeHeadImg.src='assets/snake-head.png?v=2';
 const snakeBodyImg=new Image();
 snakeBodyImg.src='assets/snake-body.png?v=1';
+const mouseImgs=['assets/mouse-1.png?v=2','assets/mouse-2.gif?v=1','assets/mouse-3.png?v=1'].map(src=>{
+  const img=new Image();
+  img.src=src;
+  return img;
+});
+const BG_LAYER_NAMES=['sky','mid','front'];
+const stageBgImgs=[1,2,3,4,5].map(n=>BG_LAYER_NAMES.map(name=>{
+  const img=new Image();
+  img.src=`assets/bg-auto-stage${n}-${name}.png?v=8`;
+  return img;
+}));
+const BG_LAYERS=[
+  [{name:'sky',speed:0.01,alpha:1},{name:'mid',speed:0.12,alpha:1},{name:'front',speed:0.42,alpha:1}],
+  [{name:'sky',speed:0.006,alpha:1},{name:'mid',speed:0.08,alpha:1},{name:'front',speed:0.30,alpha:1}],
+  [{name:'sky',speed:0.01,alpha:1},{name:'mid',speed:0.14,alpha:1},{name:'front',speed:0.46,alpha:1}],
+  [{name:'sky',speed:0.008,alpha:1},{name:'mid',speed:0.11,alpha:1},{name:'front',speed:0.38,alpha:1}],
+  [{name:'sky',speed:0.008,alpha:1},{name:'mid',speed:0.13,alpha:1},{name:'front',speed:0.44,alpha:1}],
+];
 
 const GRAVITY=0.55, JUMP_V=-9.6, MOVE_A=0.9, MOVE_MAX=2.7, FRICTION=0.78, MAX_FALL=11;
 const HEAD_R=9, SEG_R=7, SEG_SPACING=7, BASE_SEG=3;
@@ -151,7 +169,7 @@ function loadStage(i){
   trail=[]; for(let k=0;k<240;k++)trail.push({x:head.x,y:head.y});
   camX=0; invuln=0; stamina=STAMINA_MAX;
   spawnEnts();
-  mice=s.mice.map(m=>({x:m.x,y:m.y,got:false,bob:Math.random()*6.28}));
+  mice=s.mice.map((m,idx)=>({x:m.x,y:m.y,got:false,bob:Math.random()*6.28,variant:idx%mouseImgs.length}));
   rocks=[]; shots=[]; lavaY=H+50; rockTimer=0;
   bossActive=false; arenaLeft=0; rightWall=0; boss=null; fires=[];
 }
@@ -346,8 +364,7 @@ function update(){
 
 function bgGrad(c){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,c[0]);g.addColorStop(1,c[1]);return g;}
 function draw(){
-  ctx.fillStyle=bgGrad(st.sky);ctx.fillRect(0,0,W,H);
-  drawDeco();
+  drawStageBackground();
   ctx.save();ctx.translate(-camX,0);
   for(let x=Math.floor(camX/8)*8;x<camX+W+8;x+=8){
     if(!overGround(x+4))continue;
@@ -372,7 +389,7 @@ function draw(){
   }
   if(bossActive){ ctx.fillStyle='#2a120c'; ctx.fillRect(rightWall+HEAD_R,0,W,H); ctx.fillStyle='#1a0a06'; for(let y=0;y<H;y+=16)ctx.fillRect(rightWall+HEAD_R,y,8,8); }
   ctx.textAlign='center';
-  for(const m of mice){ if(m.got)continue; ctx.font='14px serif';ctx.fillText('\uD83D\uDC2D',m.x,m.y+Math.sin(m.bob)*2+5);}
+  for(const m of mice){ if(m.got)continue; drawMouse(m); }
   if(!bossActive)for(const e of ents){ if(!e.alive)continue; ctx.font='15px serif';
     const ey=e.y+(e.type==='hop'?(e.dispY||0):0);
     const em=e.em||(e.type==='ghost'?'\uD83D\uDC7B':e.type==='ninja'?'\uD83E\uDD77':e.type==='scorp'?'\uD83E\uDD82':e.type==='cobra'?'\uD83D\uDC0D':'\uD83D\uDFEA');
@@ -401,6 +418,20 @@ function draw(){
     ctx.fillStyle='rgba(255,220,120,.5)';for(let x=camX;x<camX+W;x+=20)ctx.fillRect(x+(performance.now()/200%20),lavaY-2,8,3);}
   ctx.restore();
   drawHUD();
+}
+
+function drawMouse(m){
+  const img=mouseImgs[m.variant%mouseImgs.length];
+  const y=m.y+Math.sin(m.bob)*2;
+  if(img&&img.complete&&img.naturalWidth){
+    const aspect=img.naturalWidth/img.naturalHeight;
+    let w=30,h=30/aspect;
+    if(h>24){h=24;w=h*aspect;}
+    ctx.drawImage(img,m.x-w/2,y-h/2,w,h);
+  }else{
+    ctx.font='14px serif';
+    ctx.fillText('\uD83D\uDC2D',m.x,y+5);
+  }
 }
 
 function drawSnakeHead(){
@@ -432,6 +463,28 @@ function drawSnakeBodySegment(t,k){
     return;
   }
   ctx.fillStyle=(k%2===0)?'#c8492c':'#e8843a';ctx.beginPath();ctx.arc(t.x,t.y,SEG_R,0,6.28);ctx.fill();
+}
+
+function drawStageBackground(){
+  ctx.fillStyle=bgGrad(st.sky);ctx.fillRect(0,0,W,H);
+  const imgs=stageBgImgs[stageIdx];
+  if(!imgs.every(img=>img.complete&&img.naturalWidth)){drawDeco();return;}
+  ctx.imageSmoothingEnabled=false;
+  for(const layer of BG_LAYERS[stageIdx]) drawParallaxLayer(imgs[BG_LAYER_NAMES.indexOf(layer.name)],layer);
+  ctx.fillStyle='rgba(0,0,0,.12)';
+  ctx.fillRect(0,0,W,H);
+}
+
+function drawParallaxLayer(img,layer){
+  const tileW=img.naturalWidth*H/img.naturalHeight;
+  let x=-(camX*layer.speed%tileW);
+  if(x>0)x-=tileW;
+  ctx.save();
+  ctx.globalAlpha=layer.alpha;
+  for(;x<W;x+=tileW){
+    ctx.drawImage(img,x,0,tileW,H);
+  }
+  ctx.restore();
 }
 
 function drawDeco(){
