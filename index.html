@@ -71,6 +71,10 @@
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 ctx.imageSmoothingEnabled=false;
 const W=480,H=270,GROUND_Y=222;
+const snakeHeadImg=new Image();
+snakeHeadImg.src='assets/snake-head.png?v=2';
+const snakeBodyImg=new Image();
+snakeBodyImg.src='assets/snake-body.png?v=1';
 
 const GRAVITY=0.55, JUMP_V=-9.6, MOVE_A=0.9, MOVE_MAX=2.7, FRICTION=0.78, MAX_FALL=11;
 const HEAD_R=9, SEG_R=7, SEG_SPACING=7, BASE_SEG=3;
@@ -388,13 +392,9 @@ function draw(){
   ctx.fillStyle='#7a3a28';for(const r of rocks){ctx.beginPath();ctx.arc(r.x,r.y,5,0,6.28);ctx.fill();}
   const segCount=BASE_SEG+eaten;
   for(let k=segCount;k>=1;k--){const t=trail[Math.min(k*SEG_SPACING,trail.length-1)];if(!t)continue;
-    ctx.fillStyle=(k%2===0)?'#c8492c':'#e8843a';ctx.beginPath();ctx.arc(t.x,t.y,SEG_R,0,6.28);ctx.fill();}
+    drawSnakeBodySegment(t,k);}
   if(!(invuln>0&&Math.floor(invuln/4)%2)){
-    ctx.fillStyle='#e8843a';ctx.beginPath();ctx.arc(head.x,head.y,HEAD_R,0,6.28);ctx.fill();
-    ctx.fillStyle='#c8492c';ctx.fillRect(head.x-7,head.y-8,14,4);
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(head.x+head.face*3,head.y-2,2.4,0,6.28);ctx.fill();
-    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(head.x+head.face*4,head.y-2,1.2,0,6.28);ctx.fill();
-    ctx.strokeStyle='#c8492c';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(head.x+head.face*8,head.y+1);ctx.lineTo(head.x+head.face*14,head.y+1);ctx.stroke();}
+    drawSnakeHead();}
   if(st.gimmick==='lava_rise'&&lavaY<H){
     const g=ctx.createLinearGradient(0,lavaY,0,H);g.addColorStop(0,'#ffcb3a');g.addColorStop(.4,'#ff6a1a');g.addColorStop(1,'#9a1a0a');
     ctx.fillStyle=g;ctx.fillRect(camX,lavaY,W,H-lavaY);
@@ -402,6 +402,38 @@ function draw(){
   ctx.restore();
   drawHUD();
 }
+
+function drawSnakeHead(){
+  if(snakeHeadImg.complete&&snakeHeadImg.naturalWidth){
+    const w=HEAD_R*3.1,h=HEAD_R*2.8;
+    ctx.save();
+    ctx.translate(head.x,head.y-1);
+    ctx.scale(head.face,1);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(snakeHeadImg,-w*.47,-h*.5,w,h);
+    ctx.restore();
+    return;
+  }
+  ctx.fillStyle='#e8843a';ctx.beginPath();ctx.arc(head.x,head.y,HEAD_R,0,6.28);ctx.fill();
+  ctx.fillStyle='#c8492c';ctx.fillRect(head.x-7,head.y-8,14,4);
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(head.x+head.face*3,head.y-2,2.4,0,6.28);ctx.fill();
+  ctx.fillStyle='#000';ctx.beginPath();ctx.arc(head.x+head.face*4,head.y-2,1.2,0,6.28);ctx.fill();
+  ctx.strokeStyle='#c8492c';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(head.x+head.face*8,head.y+1);ctx.lineTo(head.x+head.face*14,head.y+1);ctx.stroke();
+}
+
+function drawSnakeBodySegment(t,k){
+  if(snakeBodyImg.complete&&snakeBodyImg.naturalWidth){
+    const size=SEG_R*2.35;
+    ctx.save();
+    ctx.translate(t.x,t.y);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(snakeBodyImg,-size*.5,-size*.5,size,size);
+    ctx.restore();
+    return;
+  }
+  ctx.fillStyle=(k%2===0)?'#c8492c':'#e8843a';ctx.beginPath();ctx.arc(t.x,t.y,SEG_R,0,6.28);ctx.fill();
+}
+
 function drawDeco(){
   ctx.save();const p=-camX*0.3;
   if(st.deco==='cloud'){ctx.fillStyle='rgba(255,255,255,.85)';
