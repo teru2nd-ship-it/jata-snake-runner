@@ -76,7 +76,7 @@ snakeHeadImg.src='assets/snake-head.png?v=2';
 const snakeBodyImg=new Image();
 snakeBodyImg.src='assets/snake-body.png?v=1';
 const bossDragonImg=new Image();
-bossDragonImg.src='assets/boss-dragon.png?v=1';
+bossDragonImg.src='assets/boss-dragon.png?v=2';
 const mouseImgs=['assets/mouse-1.png?v=2','assets/mouse-2.gif?v=1','assets/mouse-3.png?v=1'].map(src=>{
   const img=new Image();
   img.src=src;
@@ -589,14 +589,17 @@ function draw(){
     const ey=e.y+(e.type==='hop'?(e.dispY||0):0);
     drawEnemy(e,ey);}
   if(bossActive&&boss){
-    if(boss.low){ctx.fillStyle='rgba(255,180,80,.4)';ctx.fillRect(boss.x-28,boss.y-42,56,76);}
+    if(boss.low){ctx.fillStyle='rgba(255,180,80,.4)';ctx.fillRect(boss.x-36,boss.y-58,72,96);}
     if(!(boss.iframe>0&&Math.floor(boss.iframe/4)%2)){
       ctx.save();ctx.translate(boss.x,boss.y+8);
       if(bossDragonImg.complete&&bossDragonImg.naturalWidth){
-        ctx.drawImage(bossDragonImg,-46,-64,92,112);
+        ctx.drawImage(bossDragonImg,-58,-78,116,142);
       }else{
-        ctx.font='42px serif';ctx.textAlign='center';
-        ctx.scale(-1,1);ctx.fillText('\uD83D\uDC09',0,15);
+        ctx.fillStyle='#1d7c35';
+        ctx.fillRect(-32,-42,64,78);
+        ctx.fillStyle='#f2c14e';
+        ctx.fillRect(-28,-48,10,12);
+        ctx.fillRect(18,-48,10,12);
       }
       ctx.restore();
     }
