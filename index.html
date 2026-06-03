@@ -75,6 +75,8 @@ const snakeHeadImg=new Image();
 snakeHeadImg.src='assets/snake-head.png?v=2';
 const snakeBodyImg=new Image();
 snakeBodyImg.src='assets/snake-body.png?v=1';
+const bossDragonImg=new Image();
+bossDragonImg.src='assets/boss-dragon.png?v=1';
 const mouseImgs=['assets/mouse-1.png?v=2','assets/mouse-2.gif?v=1','assets/mouse-3.png?v=1'].map(src=>{
   const img=new Image();
   img.src=src;
@@ -587,10 +589,16 @@ function draw(){
     const ey=e.y+(e.type==='hop'?(e.dispY||0):0);
     drawEnemy(e,ey);}
   if(bossActive&&boss){
-    if(boss.low){ctx.fillStyle='rgba(255,180,80,.4)';ctx.fillRect(boss.x-20,boss.y-22,40,44);}
+    if(boss.low){ctx.fillStyle='rgba(255,180,80,.4)';ctx.fillRect(boss.x-28,boss.y-42,56,76);}
     if(!(boss.iframe>0&&Math.floor(boss.iframe/4)%2)){
-      ctx.font='42px serif';ctx.textAlign='center';
-      ctx.save();ctx.translate(boss.x,boss.y);ctx.scale(-1,1);ctx.fillText('\uD83D\uDC09',0,15);ctx.restore();
+      ctx.save();ctx.translate(boss.x,boss.y+8);
+      if(bossDragonImg.complete&&bossDragonImg.naturalWidth){
+        ctx.drawImage(bossDragonImg,-46,-64,92,112);
+      }else{
+        ctx.font='42px serif';ctx.textAlign='center';
+        ctx.scale(-1,1);ctx.fillText('\uD83D\uDC09',0,15);
+      }
+      ctx.restore();
     }
     if(boss.dead){ctx.font='30px serif';ctx.fillText('\uD83D\uDCA5',boss.x,boss.y+10);}
     ctx.font='18px serif';
