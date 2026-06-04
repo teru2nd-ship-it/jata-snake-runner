@@ -123,7 +123,7 @@ stage2GraveGroundImg.src="assets/stage2-grave-ground-teru.png?v=1";
 const stage3SunsetSkyImg=new Image();
 stage3SunsetSkyImg.src="assets/stage3-sunset-teru.png?v=1";
 const stage3VillageFrontImg=new Image();
-stage3VillageFrontImg.src="assets/stage3-village-front-teru.png?v=1";
+stage3VillageFrontImg.src="assets/stage3-village-front-loop.png?v=stage3-loop-1";
 const stage4SunsetSkyImg=new Image();
 stage4SunsetSkyImg.src="assets/stage4-sunset-sun-teru.png?v=1";
 const stage4DesertFrontImg=new Image();
@@ -302,7 +302,9 @@ function startBoss(){
 }
 function breatheFire(){
   const dir=head.x<boss.x?-1:1;
-  for(let i=0;i<2;i++) fires.push({x:boss.x+dir*18,y:boss.y+6,vx:dir*(2.3+i*0.5),vy:-0.7+i*0.5});
+  const mouthX=boss.x+(dir<0?-50:44);
+  const mouthY=boss.y-30;
+  for(let i=0;i<2;i++) fires.push({x:mouthX+dir*i*6,y:mouthY+i*3,vx:dir*(2.3+i*0.5),vy:-0.7+i*0.5});
 }
 function updateBoss(){
   const b=boss; b.timer++; if(b.iframe>0)b.iframe--;
