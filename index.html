@@ -71,63 +71,65 @@
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 ctx.imageSmoothingEnabled=false;
 const W=480,H=270,GROUND_Y=222;
+const ASSET_VERSION='20260605-1';
+const asset=path=>`${path}?v=${ASSET_VERSION}`;
 const snakeHeadImg=new Image();
-snakeHeadImg.src='assets/snake-head.png?v=2';
+snakeHeadImg.src=asset('assets/snake-head.png');
 const snakeBodyImg=new Image();
-snakeBodyImg.src='assets/snake-body.png?v=1';
+snakeBodyImg.src=asset('assets/snake-body.png');
 const bossDragonImg=new Image();
-bossDragonImg.src='assets/boss-dragon.png?v=2';
-const mouseImgs=['assets/mouse-1.png?v=2','assets/mouse-2.gif?v=1','assets/mouse-3.png?v=1'].map(src=>{
+bossDragonImg.src=asset('assets/boss-dragon.png');
+const mouseImgs=['assets/mouse-1.png','assets/mouse-2.gif','assets/mouse-3.png'].map(src=>{
   const img=new Image();
-  img.src=src;
+  img.src=asset(src);
   return img;
 });
 const ENEMY_ART_DEFS={
-  eagle:['assets/enemies/eagle.png?v=enemy-alpha-1',32,28],
-  grasshopper1:['assets/enemies/grasshopper-1.png?v=enemy-alpha-1',30,20],
-  grasshopper2:['assets/enemies/grasshopper-2.png?v=enemy-alpha-1',30,20],
-  spiderWhite:['assets/enemies/spider-white.png?v=enemy-alpha-1',26,26],
-  pandaSamurai:['assets/enemies/panda-samurai.png?v=enemy-alpha-1',24,34],
-  spiderRed:['assets/enemies/spider-red.png?v=enemy-alpha-1',26,26],
-  pandaRonin:['assets/enemies/panda-ronin.png?v=enemy-alpha-1',22,34],
-  bee:['assets/enemies/bee.png?v=enemy-alpha-1',28,22],
-  mantis:['assets/enemies/mantis-1.png?v=enemy-alpha-1',32,24],
-  spiderYellow:['assets/enemies/spider-yellow.png?v=enemy-alpha-1',26,26],
-  wasp:['assets/enemies/wasp.png?v=enemy-alpha-1',28,23],
-  owl1:['assets/enemies/owl-1.png?v=enemy-alpha-1',22,28],
-  ninjaDuo:['assets/enemies/ninja-duo.png?v=enemy-alpha-1',30,30],
-  vulture:['assets/enemies/vulture.png?v=enemy-alpha-1',24,28],
-  owl2:['assets/enemies/owl-2.png?v=enemy-alpha-1',22,28]
+  eagle:['assets/enemies/eagle.png',32,28],
+  grasshopper1:['assets/enemies/grasshopper-1.png',30,20],
+  grasshopper2:['assets/enemies/grasshopper-2.png',30,20],
+  spiderWhite:['assets/enemies/spider-white.png',26,26],
+  pandaSamurai:['assets/enemies/panda-samurai.png',24,34],
+  spiderRed:['assets/enemies/spider-red.png',26,26],
+  pandaRonin:['assets/enemies/panda-ronin.png',22,34],
+  bee:['assets/enemies/bee.png',28,22],
+  mantis:['assets/enemies/mantis-1.png',32,24],
+  spiderYellow:['assets/enemies/spider-yellow.png',26,26],
+  wasp:['assets/enemies/wasp.png',28,23],
+  owl1:['assets/enemies/owl-1.png',22,28],
+  ninjaDuo:['assets/enemies/ninja-duo.png',30,30],
+  vulture:['assets/enemies/vulture.png',24,28],
+  owl2:['assets/enemies/owl-2.png',22,28]
 };
 const enemyArtImgs={};
 for(const [key,[src,w,h]] of Object.entries(ENEMY_ART_DEFS)){
   const img=new Image();
-  img.src=src;
+  img.src=asset(src);
   enemyArtImgs[key]={img,w,h};
 }
 const ENEMY_FALLBACK={ghost:'\uD83D\uDC7B',ninja:'\uD83E\uDD77',scorp:'\uD83E\uDD82',cobra:'\uD83D\uDC0D',hop:'\uD83D\uDC26',walk:'\uD83D\uDFEA'};
 const BG_LAYER_NAMES=['sky','mid','front'];
 const stageBgImgs=[1,2,3,4,5].map(n=>BG_LAYER_NAMES.map(name=>{
   const img=new Image();
-  img.src=`assets/bg-auto-stage${n}-${name}.png?v=8`;
+  img.src=asset(`assets/bg-auto-stage${n}-${name}.png`);
   return img;
 }));
 const stage1UserSkyImg=new Image();
-stage1UserSkyImg.src="assets/stage1-sun-plane-teru.png?v=2";
+stage1UserSkyImg.src=asset('assets/stage1-sun-plane-teru.png');
 const stage1SeaWashImg=new Image();
-stage1SeaWashImg.src="assets/stage1-sea-only-teru.png?v=2";
+stage1SeaWashImg.src=asset('assets/stage1-sea-only-teru.png');
 const stage2SpaceSkyImg=new Image();
-stage2SpaceSkyImg.src="assets/stage2-space-teru.png?v=1";
+stage2SpaceSkyImg.src=asset('assets/stage2-space-teru.png');
 const stage2GraveGroundImg=new Image();
-stage2GraveGroundImg.src="assets/stage2-grave-ground-teru.png?v=1";
+stage2GraveGroundImg.src=asset('assets/stage2-grave-ground-teru.png');
 const stage3SunsetSkyImg=new Image();
-stage3SunsetSkyImg.src="assets/stage3-sunset-teru.png?v=1";
+stage3SunsetSkyImg.src=asset('assets/stage3-sunset-teru.png');
 const stage3VillageFrontImg=new Image();
-stage3VillageFrontImg.src="assets/stage3-village-front-loop.png?v=stage3-loop-1";
+stage3VillageFrontImg.src=asset('assets/stage3-village-front-loop.png');
 const stage4SunsetSkyImg=new Image();
-stage4SunsetSkyImg.src="assets/stage4-sunset-sun-teru.png?v=1";
+stage4SunsetSkyImg.src=asset('assets/stage4-sunset-sun-teru.png');
 const stage4DesertFrontImg=new Image();
-stage4DesertFrontImg.src="assets/stage4-desert-front-teru.png?v=1";
+stage4DesertFrontImg.src=asset('assets/stage4-desert-front-teru.png');
 const BG_LAYERS=[
   [{name:'sky',speed:0.01,alpha:1},{name:'mid',speed:0.12,alpha:1},{name:'front',speed:0.42,alpha:1}],
   [{name:'sky',speed:0.006,alpha:1},{name:'mid',speed:0.08,alpha:1},{name:'front',speed:0.30,alpha:1}],
