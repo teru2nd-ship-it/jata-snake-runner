@@ -36,6 +36,21 @@
     background:rgba(244,216,168,.18);border:3px solid rgba(244,216,168,.45);
     display:flex;align-items:center;justify-content:center;font-size:26px;color:#f4d8a8;pointer-events:auto;}
   #bL{left:14px;}#bR{left:100px;}#bJ{right:14px;background:rgba(232,132,58,.3);border-color:rgba(232,132,58,.7);}
+  #endScreen{gap:14px;}
+  #endShell{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.75fr);gap:16px;width:min(920px,100%);align-items:stretch;}
+  .result-media{position:relative;min-height:240px;background:#05050b;border:4px solid #000;box-shadow:4px 4px 0 #000;overflow:hidden;}
+  .result-media video,.result-media canvas,.result-media img{display:block;width:100%;height:100%;object-fit:cover;background:#05050b;}
+  .result-media canvas{image-rendering:pixelated;}
+  .result-panel{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;min-height:240px;padding:18px;background:rgba(15,10,20,.92);border:4px solid #000;box-shadow:4px 4px 0 #000;}
+  .result-panel .title{font-size:clamp(20px,4vw,38px);line-height:1.3;}
+  .result-panel .sub{font-size:clamp(8px,1.6vw,13px);}
+  .result-badge{position:absolute;top:10px;left:10px;z-index:2;display:inline-flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,0,0,.55);border:2px solid rgba(244,216,168,.35);font-size:10px;line-height:1.4;color:#f4d8a8;}
+  .result-badge span{display:block;}
+  @media(max-width:780px){
+    #endShell{grid-template-columns:1fr;}
+    .result-media{min-height:190px;}
+    .result-panel{min-height:auto;}
+  }
   @media(hover:hover){#pad{display:none;}}
 </style>
 </head>
@@ -61,9 +76,18 @@
     <button class="btn" id="nextBtn">NEXT</button>
   </div>
   <div class="screen hidden" id="endScreen">
-    <div class="title" id="endTitle">GAME OVER</div>
-    <div class="sub" id="endMsg"></div>
-    <button class="btn" id="againBtn">RETRY</button>
+    <div id="endShell">
+      <div class="result-media">
+        <div class="result-badge" id="endBadge"><span id="endBadgeTitle">GAME OVER</span></div>
+        <video id="clearVideo" muted loop playsinline preload="auto" class="hidden"></video>
+        <img id="deathPortrait" alt="GAME OVER portrait">
+      </div>
+      <div class="result-panel">
+        <div class="title" id="endTitle">GAME OVER</div>
+        <div class="sub" id="endMsg"></div>
+        <button class="btn" id="againBtn">RETRY</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -71,9 +95,18 @@
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 ctx.imageSmoothingEnabled=false;
 const W=480,H=270,GROUND_Y=222;
-const ASSET_VERSION='20260605-1';
+const ASSET_VERSION='20260606-1';
 const ASSET_BASE=location.pathname.endsWith('/')?location.pathname:`${location.pathname}/`;
 const asset=path=>`${new URL(path, location.origin+ASSET_BASE).pathname}?v=${ASSET_VERSION}`;
+const clearVideo=document.getElementById('clearVideo');
+clearVideo.src=asset('assets/ending/gemini-clear.mp4');
+clearVideo.poster=asset('assets/ending/gemini-clear-poster.jpg');
+clearVideo.volume=0;
+const deathPortrait=document.getElementById('deathPortrait');
+const deathPortraits=['assets/ending/gameover-reaper.png','assets/ending/gameover-reaper-2.png'];
+const endBadgeTitle=document.getElementById('endBadgeTitle');
+const endTitle=document.getElementById('endTitle');
+const endMsg=document.getElementById('endMsg');
 const snakeHeadImg=new Image();
 snakeHeadImg.src=asset('assets/snake-head.png');
 const snakeBodyImg=new Image();
@@ -256,6 +289,7 @@ const sfxStomp=()=>{ if(!actx)return; const t=actx.currentTime; beep(300,0.05,'s
 const sfxEat  =()=>{ if(!actx)return; const t=actx.currentTime; beep(880,0.05,'square',0.3,t); beep(1320,0.07,'square',0.26,t+0.05); };
 const sfxHeal =()=>seq([523,659,784,1047],0.07,'square',0.28);
 const sfxHurt =()=>{ if(!actx)return; const t=actx.currentTime; beep(220,0.16,'sawtooth',0.3,t); beep(150,0.2,'sawtooth',0.27,t+0.11); };
+const sfxLose =()=>{ if(!actx)return; const t=actx.currentTime; beep(140,0.14,'sawtooth',0.22,t); beep(104,0.16,'triangle',0.16,t+0.07); beep(78,0.18,'square',0.1,t+0.12); };
 const sfxBoss =()=>{ if(!actx)return; const t=actx.currentTime; beep(170,0.12,'square',0.34,t); beep(120,0.18,'sawtooth',0.3,t+0.08); };
 const sfxClear=()=>seq([523,659,784,1047,1319],0.1,'square',0.3);
 const sfxOver =()=>seq([392,330,262,196],0.16,'square',0.3);
@@ -263,22 +297,39 @@ const BGM_MAIN={step:0.15, lead:[392,0,523,0,659,0,523,0,587,0,494,0,523,0,659,0
                           bass:[131,0,196,0,131,0,196,0,175,0,196,0,131,0,196,0]};
 const BGM_BOSS={step:0.13, lead:[440,0,523,440,659,0,523,0,440,0,415,440,392,0,330,0],
                           bass:[110,0,110,0,110,0,110,0,98,0,98,0,110,0,110,0]};
+const BGM_STAGE5_AMBIENT={step:0.26, lead:[55,0,58,0,62,0,58,0,55,0,50,0,53,0,58,0],
+                           bass:[28,0,28,0,31,0,31,0,28,0,26,0,28,0,31,0],
+                           leadWave:'triangle', bassWave:'sine', leadVol:0.045, bassVol:0.022};
+const BGM_CLEAR={step:0.14, lead:[659,0,784,0,988,0,1319,0,1175,0,988,0,784,0,659,0],
+                           bass:[196,0,220,0,247,0,294,0,330,0,392,0,330,0,294,0],
+                           leadWave:'triangle', bassWave:'sine', leadVol:0.18, bassVol:0.14};
 let bgmName=null, bgmTimer=null;
 function bgmPlay(name){ if(bgmName===name)return; bgmStop(); bgmName=name;
-  const cfg=name==='boss'?BGM_BOSS:BGM_MAIN;
+  const cfg=name==='boss'?BGM_BOSS:name==='clear'?BGM_CLEAR:name==='ambient5'?BGM_STAGE5_AMBIENT:BGM_MAIN;
   (function tick(){ if(bgmName!==name){return;}
     if(actx&&!muted){ const t0=actx.currentTime+0.05;
-      cfg.lead.forEach((f,i)=>beep(f,cfg.step*0.85,'square',0.16,t0+i*cfg.step));
-      cfg.bass.forEach((f,i)=>beep(f,cfg.step*1.6,'triangle',0.2,t0+i*cfg.step)); }
+      cfg.lead.forEach((f,i)=>beep(f,cfg.step*0.85,cfg.leadWave||'square',cfg.leadVol||0.16,t0+i*cfg.step));
+      cfg.bass.forEach((f,i)=>beep(f,cfg.step*1.6,cfg.bassWave||'triangle',cfg.bassVol||0.2,t0+i*cfg.step)); }
     bgmTimer=setTimeout(tick, cfg.lead.length*cfg.step*1000);
   })();
 }
 function bgmStop(){ bgmName=null; if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;} }
+function playStageBgm(){ bgmPlay(stageIdx===4?'ambient5':'main'); }
 const muteBtn=document.getElementById('muteBtn');
 muteBtn.onclick=()=>{ audioInit(); muted=!muted; muteBtn.textContent=muted?'\uD83D\uDD07':'\uD83D\uDD0A'; if(!muted)audioResume(); };
 addEventListener('keydown',audioResume,{once:true});
 
-function loseLife(){ lives--; if(lives<=0){gameOver();return;} stamina=STAMINA_MAX; respawn(); }
+let deathPauseMs=0;
+const DEATH_PAUSE_TOTAL_MS=900;
+function loseLife(){
+  lives--;
+  if(lives<=0){gameOver();return;}
+  stamina=STAMINA_MAX;
+  sfxLose();
+  running=false;
+  bgmStop();
+  deathPauseMs=DEATH_PAUSE_TOTAL_MS;
+}
 function hurt(){ if(invuln>0)return; stamina--; invuln=80; head.vy=-6; head.vx=-3.2*head.face; sfxHurt(); if(stamina<=0)loseLife(); }
 function fall(){ loseLife(); }
 function respawn(){
@@ -290,6 +341,8 @@ function respawn(){
   for(const p of st.plats){ p.broken=false; p.timer=0; }
   if(st.gimmick==='lava_rise'&&!bossActive) lavaY=Math.max(lavaY, head.y+80);
   camX=bossActive?arenaLeft:Math.max(0,Math.min(st.goalX-W+120,head.x-W*0.34));
+  if(bossActive){ startBoss(); }
+  else playStageBgm();
 }
 function feedMouse(){ eaten++; score+=100; feed++;
   if(feed>=FEED_HEAL){ feed-=FEED_HEAL; if(stamina<STAMINA_MAX)stamina++; else lives++; sfxHeal(); } }
@@ -297,12 +350,13 @@ function feedMouse(){ eaten++; score+=100; feed++;
 function startBoss(){
   bossActive=true; arenaLeft=Math.max(0,st.bossX-60); rightWall=arenaLeft+W-26;
   lavaY=H+60;
-  boss={x:arenaLeft+W-80, baseY:80, y:80, hp:BOSS_HP, state:'intro', timer:0, iframe:0, dead:0, fireT:0, low:false};
+  boss={x:arenaLeft+W-80, baseY:80, y:80, hp:BOSS_HP, state:'intro', timer:0, iframe:0, dead:0, fireT:0, fireBursts:0, low:false};
   fires=[];
   bossSpikes=[
     {x:boss.x-62,y:GROUND_Y-12,w:22},
     {x:boss.x+34,y:GROUND_Y-12,w:18}
   ];
+  bgmPlay('boss');
 }
 function breatheFire(){
   const dir=head.x<boss.x?-1:1;
@@ -316,14 +370,20 @@ function updateBoss(){
   if(b.state==='intro'){ if(b.timer>50){b.state='hover';b.timer=0;} }
   else if(b.state==='hover'){
     b.y=b.baseY+Math.sin(b.timer*0.05)*10; b.low=false;
-    b.fireT++; if(b.fireT>90){b.fireT=0;breatheFire();}
-    if(b.timer>230){b.state='swoop';b.timer=0;}
+    if(b.timer===1) b.fireBursts=1+Math.floor(Math.random()*2);
+    b.fireT++;
+    if(b.fireT>90){
+      b.fireT=0;
+      breatheFire();
+      b.fireBursts--;
+      if(b.fireBursts<=0){ b.state='swoop'; b.timer=0; b.fireT=0; }
+    }
   }
   else if(b.state==='swoop'){
     const lowY=GROUND_Y-26;
     if(b.timer<35){ b.y+=(lowY-b.y)*0.12; b.low=false; }
     else if(b.timer<110){ b.y=lowY; b.low=true; }
-    else { b.y+=(b.baseY-b.y)*0.1; b.low=false; if(b.timer>170){b.state='hover';b.timer=0;b.fireT=0;} }
+    else { b.y+=(b.baseY-b.y)*0.1; b.low=false; if(b.timer>170){b.state='hover';b.timer=0;b.fireT=0;b.fireBursts=1+Math.floor(Math.random()*2);} }
   }
   const bw=32,bh=30;
   if(Math.abs(b.x-head.x)<bw&&Math.abs(b.y-head.y)<bh){
@@ -417,7 +477,7 @@ function update(){
     rocks=rocks.filter(r=>!r.dead&&r.y<H+20);
   }
 
-  if(st.boss&&!bossActive&&head.x>st.bossX){ startBoss(); bgmPlay('boss'); }
+  if(st.boss&&!bossActive&&head.x>st.bossX){ startBoss(); }
   if(bossActive&&boss) updateBoss();
 
   camX=Math.max(0,Math.min(st.goalX-W+120,head.x-W*0.34));
@@ -626,6 +686,11 @@ function draw(){
     ctx.fillStyle='rgba(255,220,120,.5)';for(let x=camX;x<camX+W;x+=20)ctx.fillRect(x+(performance.now()/200%20),lavaY-2,8,3);}
   ctx.restore();
   drawHUD();
+  if(deathPauseMs>0){
+    const fade=Math.min(1,1-(deathPauseMs/DEATH_PAUSE_TOTAL_MS));
+    ctx.fillStyle='rgba(0,0,0,'+(0.28+0.5*fade).toFixed(3)+')';
+    ctx.fillRect(0,0,W,H);
+  }
 }
 
 function drawMouse(m){
@@ -829,15 +894,41 @@ function drawHUD(){
   }
 }
 
+function stopEndMedia(){
+  clearVideo.pause();
+  clearVideo.currentTime=0;
+}
 function show(id){document.getElementById(id).classList.remove('hidden');}
 function hide(id){document.getElementById(id).classList.add('hidden');}
-function startGame(){audioInit();audioResume();stageIdx=0;score=0;eaten=0;lives=3;feed=0;loadStage(0);hide('titleScreen');hide('interScreen');hide('endScreen');running=true;bgmPlay('main');}
+function showEndScreen(mode, detail){
+  stopEndMedia();
+  if(mode==='clear'){
+    endBadgeTitle.textContent='ALL CLEAR';
+    endTitle.textContent='ALL CLEAR!';
+    endTitle.style.color='#ffd24a';
+    endMsg.innerHTML='\uD83D\uDC09 ドラゴン撃破！<br>エンドカードを再生中。<br>SCORE '+score+' ／ \uD83D\uDC2D'+eaten;
+    deathPortrait.classList.add('hidden');
+    clearVideo.classList.remove('hidden');
+    clearVideo.currentTime=0;
+    clearVideo.play().catch(()=>{});
+    bgmPlay('clear');
+  }else{
+    endBadgeTitle.textContent='GAME OVER';
+    endTitle.textContent='GAME OVER';
+    endTitle.style.color='#e8843a';
+    endMsg.innerHTML='SCORE '+score+' ／ \uD83D\uDC2D'+eaten+'<br>'+(detail||'STAGE '+(stageIdx+1));
+    clearVideo.classList.add('hidden');
+    deathPortrait.classList.remove('hidden');
+    const pick=deathPortraits[Math.floor(Math.random()*deathPortraits.length)];
+    deathPortrait.src=asset(pick);
+  }
+  show('endScreen');
+}
+function startGame(){audioInit();audioResume();stageIdx=0;score=0;eaten=0;lives=3;feed=0;deathPauseMs=0;loadStage(0);hide('titleScreen');hide('interScreen');hide('endScreen');stopEndMedia();deathPortrait.classList.remove('hidden');running=true;playStageBgm();}
 function stageClear(){running=false; bgmStop(); sfxClear();
+  deathPauseMs=0;
   if(stageIdx>=STAGES.length-1){
-    document.getElementById('endTitle').textContent='ALL CLEAR!';
-    document.getElementById('endTitle').style.color='#ffd24a';
-    document.getElementById('endMsg').innerHTML='\uD83D\uDC09 ドラゴン撃破！<br>全5ステージ制覇！<br>SCORE '+score+' ／ \uD83D\uDC2D'+eaten;
-    show('endScreen');
+    showEndScreen('clear');
   }else{
     const nx=STAGES[stageIdx+1];
     document.getElementById('interTitle').textContent='STAGE CLEAR';
@@ -846,14 +937,12 @@ function stageClear(){running=false; bgmStop(); sfxClear();
   }
 }
 function gameOver(){running=false; bgmStop(); sfxOver();
-  document.getElementById('endTitle').textContent='GAME OVER';
-  document.getElementById('endTitle').style.color='#e8843a';
-  document.getElementById('endMsg').innerHTML='SCORE '+score+' ／ \uD83D\uDC2D'+eaten+'<br>'+(bossActive?'BOSS戦':'STAGE '+(stageIdx+1));
-  show('endScreen');}
+  deathPauseMs=0;
+  showEndScreen('gameover',bossActive?'BOSS戦':'STAGE '+(stageIdx+1));}
 
 document.getElementById('startBtn').onclick=startGame;
 document.getElementById('againBtn').onclick=startGame;
-document.getElementById('nextBtn').onclick=()=>{stageIdx++;loadStage(stageIdx);hide('interScreen');running=true;bgmPlay('main');};
+document.getElementById('nextBtn').onclick=()=>{stageIdx++;loadStage(stageIdx);hide('interScreen');running=true;playStageBgm();};
 
 loadStage(0);
 let lastFrameTime=0, updateLag=0;
@@ -861,14 +950,23 @@ function loop(now=0){
   if(!lastFrameTime)lastFrameTime=now;
   const elapsed=Math.min(100,now-lastFrameTime);
   lastFrameTime=now;
-  updateLag+=elapsed;
-  let steps=0;
-  while(updateLag>=UPDATE_STEP_MS&&steps<MAX_UPDATE_STEPS){
-    update();
-    updateLag-=UPDATE_STEP_MS;
-    steps++;
+  if(deathPauseMs>0){
+    deathPauseMs=Math.max(0,deathPauseMs-elapsed);
+    updateLag=0;
+    if(deathPauseMs===0){
+      respawn();
+      running=true;
+    }
+  }else{
+    updateLag+=elapsed;
+    let steps=0;
+    while(updateLag>=UPDATE_STEP_MS&&steps<MAX_UPDATE_STEPS){
+      update();
+      updateLag-=UPDATE_STEP_MS;
+      steps++;
+    }
+    if(steps>=MAX_UPDATE_STEPS)updateLag=0;
   }
-  if(steps>=MAX_UPDATE_STEPS)updateLag=0;
   draw();
   requestAnimationFrame(loop);
 }
